@@ -8,7 +8,7 @@
 // WIFI SETTINGS
 const char* ssid = "SSID";
 const char* password = "PASSWORD";
-
+const char* esphostname = "HOSTNAME";
 // MQTT Settings
 const char* mqtt_server = "";
 const int mqtt_port = 1883;
@@ -20,10 +20,10 @@ const char* mqtt_fade_topic = "office/light1/fade";
 const char* pir_state_topic = "office/light1/motion";
 
 // PIN SETTINGS
-const byte switchPin = 5;
-const byte zcPin = 12;
-const byte outPin = 13;
-const byte pirPin = 0;
+const byte switchPin = D8;
+const byte zcPin = D7;
+const byte outPin = D6;
+const byte pirPin = D5;
 
 // BUTTON SETTINGS
 const byte buttonType = 1; // 0 = toggle; 1 = momentary;
@@ -31,7 +31,7 @@ const byte buttonActiveOn = 0; // 0 = high; 1 = low;
 
 // OTHER SETTINGS
 const byte mqttDebug = 1;
-
+const float scaleBrightness = 2.55; //multiply incoming mqtt brightness values by this
 byte fade = 0;
 byte state = 1;
 byte tarBrightness = 255;
@@ -53,7 +53,7 @@ void setup(void) {
   
   Serial.begin(115200);
   Serial.println("");
-
+  WiFi.hostname(esphostname);
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -179,10 +179,10 @@ void setupMQTTClient() {
     mqttClient.setCallback(mqttCallback);
     
     if (mqtt_user == "") {
-      connectResult = mqttClient.connect("ESP" + ESP.getChipId());
+      connectResult = mqttClient.connect(esphostname);
     }
     else {
-      connectResult = mqttClient.connect("ESP" + ESP.getChipId(), mqtt_user, mqtt_password);
+      connectResult = mqttClient.connect(esphostname, mqtt_user, mqtt_password);
     }
     
     if (connectResult) {
@@ -278,7 +278,7 @@ void updateFade(bool newFade) {
 }
 
 void updateBrightness(int newBrightness) {
-  tarBrightness = newBrightness;
+  tarBrightness = (int)((newBrightness*scaleBrightness)+0.5);
   
   if (mqttClient.connected()) {
     String payload = String(tarBrightness);
